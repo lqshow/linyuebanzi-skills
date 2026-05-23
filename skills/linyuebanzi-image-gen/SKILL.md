@@ -1,16 +1,42 @@
 ---
 name: linyuebanzi-image-gen
 description: |
-  通用图像生成执行层,调用 MuleRun Nano Banana 2 API。支持 generation(纯文本生图)和 edit(带参考图修图)两种模式,单张和批量执行。这是被其他 skill 调用的基础设施 skill,不直接面向终端用户。当其他 skill(如 cover-hero、inline-diagram)需要调 API 生图时,调用本 skill 的 scripts/generate.py。不要用于:提示词撰写、风格注入、业务校验——这些由调用方 skill 负责。
+  通用图像生成执行层,支持 MuleRun Nano Banana 2 和 APImart GPT Image 2 两种生图 API。通过 --provider 切换。支持 generation(纯文本生图)和 edit(带参考图修图)两种模式,单张和批量执行。这是被其他 skill 调用的基础设施 skill,不直接面向终端用户。当其他 skill(如 cover-hero、inline-diagram)需要调 API 生图时,调用本 skill 的 scripts/generate.py。不要用于:提示词撰写、风格注入、业务校验——这些由调用方 skill 负责。
 ---
 
 # 林月半子通用图像生成器
 
-纯粹的 MuleRun Nano Banana 2 API 执行层。调用方 skill 负责 prompt 撰写、样式注入、业务校验;本 skill 只管"接收 prompt → 调 API → 返回结果"。
+支持两种生图 API 的执行层,通过 `--provider` 参数切换。调用方 skill 负责 prompt 撰写、样式注入、业务校验;本 skill 只管"接收 prompt → 调 API → 返回结果"。
 
 ## 什么时候触发这个 skill
 
 本 skill 是被其他 skill 调用的基础设施,不直接由用户触发。当 Claude 正在执行某个生图相关的 skill(如 `linyuebanzi-cover-hero`、`linyuebanzi-inline-diagram`)时,通过 bash 调用本 skill 的脚本。
+
+## 生图 API 切换
+
+通过 `--provider` 参数或环境变量自动检测选择生图平台:
+
+```bash
+# 方式 1: 自动检测 —— 只设一个环境变量就行
+export APIMART_API_KEY=sk-xxx
+python linyuebanzi-image-gen/scripts/generate.py \
+  --mode generation --prompt "..." --output-dir ./out
+# 自动检测到 APIMART_API_KEY，使用 apimart
+
+# 方式 2: 显式指定 —— 两个都设了时用这个覆盖
+python linyuebanzi-image-gen/scripts/generate.py \
+  --provider apimart --mode generation --prompt "..." --output-dir ./out
+```
+
+| Provider | `--provider` | 环境变量 | 模型 |
+|---|---|---|---|
+| MuleRun | `mulerun`（默认） | `MULERUN_API_KEY` | Nano Banana 2 |
+| APImart | `apimart` | `APIMART_API_KEY` | GPT Image 2 |
+
+**自动检测逻辑**（不传 `--provider` 时）:
+1. 只设了 `APIMART_API_KEY` → 自动用 apimart
+2. 只设了 `MULERUN_API_KEY` → 用 mulerun
+3. 两个都设了 → 默认 mulerun（向后兼容），想用 apimart 需显式传 `--provider apimart`
 
 ## 两种模式
 
@@ -96,6 +122,7 @@ python linyuebanzi-image-gen/scripts/generate.py \
 
 | 参数 | 单张 | 批量 | 必填 | 说明 |
 |---|---|---|---|---|
+| `--provider` | Y | Y | 否 | `mulerun`(默认) 或 `apimart` |
 | `--mode` | Y | N(在 manifest) | 单张必填 | `generation` 或 `edit` |
 | `--prompt` | Y(或 --prompt-file) | N | 否 | 内联提示词 |
 | `--prompt-file` | Y(或 --prompt) | N | 否 | 提示词文件路径 |
@@ -129,7 +156,10 @@ python linyuebanzi-image-gen/scripts/generate.py \
 
 ## 环境变量
 
-- `MULERUN_API_KEY`: 必填,MuleRun API 的 Bearer token
+根据 `--provider` 设置对应的 API Key:
+
+- `MULERUN_API_KEY`: `--provider mulerun` 时必填,MuleRun API 的 Bearer token
+- `APIMART_API_KEY`: `--provider apimart` 时必填,APImart API 的 Bearer token
 
 ## 调用方 skill 集成指南
 
@@ -139,8 +169,16 @@ python linyuebanzi-image-gen/scripts/generate.py \
 2. 生成 prompt 后,通过 bash 调用本 skill:
 
 ```bash
-# 单张
+# 单张（默认 mulerun）
 python /path/to/linyuebanzi-image-gen/scripts/generate.py \
+  --mode generation \
+  --prompt-file ./my-prompt.txt \
+  --name-tag my-image \
+  --output-dir ./my-output
+
+# 单张（指定 apimart）
+python /path/to/linyuebanzi-image-gen/scripts/generate.py \
+  --provider apimart \
   --mode generation \
   --prompt-file ./my-prompt.txt \
   --name-tag my-image \
@@ -167,7 +205,7 @@ python /path/to/linyuebanzi-image-gen/scripts/generate.py \
 
 | 问题 | 原因 | 对策 |
 |---|---|---|
+| API KEY 未找到 | 环境变量未设置 | mulerun: `export MULERUN_API_KEY=sk-xxx`，apimart: `export APIMART_API_KEY=sk-xxx` |
 | HTTP 403 | Cloudflare WAF 拦截 | 脚本已内置浏览器 UA,检查网络 |
 | 轮询超时 | API 服务繁忙 | 等待后重试,或检查 API 状态 |
-| MULERUN_API_KEY 未找到 | 环境变量未设置 | `export MULERUN_API_KEY=sk-xxx` |
 | edit 模式未传 --images | 缺少参考图 | edit 模式必须通过 --images 传参考图 URL |

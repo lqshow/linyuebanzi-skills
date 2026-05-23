@@ -510,7 +510,13 @@ def main():
     parser.add_argument("--blocklist", type=str, help="禁用词表文件路径(每行一个词,命中即停止)")
     args = parser.parse_args()
 
+    # Provider 决策: 显式传了就用显式的,否则自动检测
     provider = args.provider
+    has_mulerun = bool(os.environ.get("MULERUN_API_KEY"))
+    has_apimart = bool(os.environ.get("APIMART_API_KEY"))
+    if args.provider == DEFAULT_PROVIDER and not has_mulerun and has_apimart:
+        provider = "apimart"
+        print(f"  自动检测: APIMART_API_KEY 已设置,切换到 apimart")
 
     # 加载 blocklist
     blocklist = load_blocklist(args.blocklist)
