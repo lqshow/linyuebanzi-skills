@@ -22,7 +22,7 @@ import re
 import sys
 from pathlib import Path
 
-STYLE_CHOICES = ("notebook", "infographic", "executive-tech", "cozy-handdrawn")
+STYLE_CHOICES = ("notebook", "infographic", "executive-tech", "cozy-handdrawn", "tech-doodle")
 
 # cozy-handdrawn 需要卡通参考图,走 edit 模式;其他风格走 generation
 COZY_REFERENCE_IMAGE = "https://r2.cloudnative101.net/assets/katong.png"

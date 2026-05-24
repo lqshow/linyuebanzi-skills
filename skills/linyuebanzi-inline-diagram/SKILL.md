@@ -1,7 +1,7 @@
 ---
 name: linyuebanzi-inline-diagram
 description: |
-  为林月半子(LQ)的技术长文自动识别插图位置,并生成 16:9 概念图/流程图/对比图/架构图。支持四种风格:手绘网格笔记本风(notebook)、专业扁平信息图(infographic)、现代高级科技商务风(executive-tech)和温暖手绘卡片风(cozy-handdrawn)。当用户需要给已经写好的文章配插图、加配图、排版优化、让长文不那么单调时使用。触发词包括:加插图、配图、加几张图、让文章更生动、排版优化、文章太单调了、给文章画几张手绘图、手绘示意图、信息图、商务风配图、科技商务风。skill 的核心价值在于"智能识别文章里哪些段落值得配图"——优先选抽象概念、流程循环、对比分类、架构组件这四类地方,不在每段机械配图。使用 MuleRun Nano Banana 2 Generation API 生成,支持通过 --style 切换不同视觉风格。不要用于封面图(走封面 skill)、截图替代、纯代码展示、表情包生成。
+  为林月半子(LQ)的技术长文自动识别插图位置,并生成 16:9 概念图/流程图/对比图/架构图。支持五种风格:手绘网格笔记本风(notebook)、专业扁平信息图(infographic)、现代高级科技商务风(executive-tech)、温暖手绘卡片风(cozy-handdrawn)和技术简笔画风(tech-doodle)。当用户需要给已经写好的文章配插图、加配图、排版优化、让长文不那么单调时使用。触发词包括:加插图、配图、加几张图、让文章更生动、排版优化、文章太单调了、给文章画几张手绘图、手绘示意图、信息图、商务风配图、科技商务风。skill 的核心价值在于"智能识别文章里哪些段落值得配图"——优先选抽象概念、流程循环、对比分类、架构组件这四类地方,不在每段机械配图。使用 MuleRun Nano Banana 2 Generation API 生成,支持通过 --style 切换不同视觉风格。不要用于封面图(走封面 skill)、截图替代、纯代码展示、表情包生成。
 ---
 
 # 林月半子技术长文插图生成器
@@ -42,7 +42,11 @@ description: |
 米白纸感底 + 黑色手绘线条 + 粉彩圆角卡片 + 轻漫画式信息图布局 + 个人动画形象辅助叙事。适合中文技术长文、概念解释、流程拆解、对比分析、公众号教程配图。
 > "用温暖手绘卡片风"
 
-如果用户没明确偏好，**必须先问用户要 notebook、infographic、executive-tech 还是 cozy-handdrawn，再继续**。不要直接用默认风格生成。
+**tech-doodle（技术简笔画风）**
+暖白奶油底 + fine-liner 墨线笔触 + 极淡粉彩上色 + 极简火柴人角色 + 底部荧光笔金句高亮。适合技术博客、知识管理、架构讲解、个人品牌内容。
+> "用技术简笔画风"
+
+如果用户没明确偏好，**必须先问用户要 notebook、infographic、executive-tech、cozy-handdrawn 还是 tech-doodle，再继续**。不要直接用默认风格生成。
 
 ### 第一步:分析文章,识别 4-5 个"值得配图"的位置
 
@@ -107,7 +111,7 @@ description: |
 - **强调要点**
 - **底部总结文字**(给图一个金句收尾)
 
-**风格前缀**(由 references/styles/{style}.md 提供,**不要改风格本身**)——notebook 风格是黑绿红网格纸基线; infographic 风格是米白底蓝橙双色信息图基线; executive-tech 风格是深靛紫主色 + 卡片式 UI + 杂志化商务科技风; cozy-handdrawn 风格是米白纸感底 + 黑色手绘线条 + 粉彩圆角卡片 + 个人动画形象辅助叙事。
+**风格前缀**(由 references/styles/{style}.md 提供,**不要改风格本身**)——notebook 风格是黑绿红网格纸基线; infographic 风格是米白底蓝橙双色信息图基线; executive-tech 风格是深靛紫主色 + 卡片式 UI + 杂志化商务科技风; cozy-handdrawn 风格是米白纸感底 + 黑色手绘线条 + 粉彩圆角卡片 + 个人动画形象辅助叙事; tech-doodle 风格是暖白奶油底 + fine-liner 墨线笔触 + 极淡粉彩上色 + 极简火柴人 + 底部荧光笔金句。
 
 ### 第三步:注入风格并调用脚本生成
 
@@ -233,7 +237,7 @@ diagrams/2026-04-21-hermes-multi-agent/
 
 ## 参考资料
 
-- 风格模板:`references/styles/notebook.md`(手绘笔记本风) | `references/styles/infographic.md`(信息图风) | `references/styles/executive-tech.md`(现代高级科技商务风) | `references/styles/cozy-handdrawn.md`(温暖手绘卡片风)
+- 风格模板:`references/styles/notebook.md`(手绘笔记本风) | `references/styles/infographic.md`(信息图风) | `references/styles/executive-tech.md`(现代高级科技商务风) | `references/styles/cozy-handdrawn.md`(温暖手绘卡片风) | `references/styles/tech-doodle.md`(技术简笔画风)
 - 手绘图提示词结构化骨架:`references/prompt_template.md`
 - 4 种图类型案例 + 1 个 `executive-tech` 风格完整案例:`references/examples.md`
 - 通用图像生成脚本:`linyuebanzi-image-gen/scripts/generate.py`
