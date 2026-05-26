@@ -4,20 +4,20 @@
 
 ## Preview Gallery
 
-`linyuebanzi-inline-diagram` 支持 5 种视觉风格：
+`linyuebanzi-inline-diagram` 支持 6 种视觉风格：
 
 | | | |
 |:---:|:---:|:---:|
 | ![](./previews/notebook.png) | ![](./previews/infographic.png) | ![](./previews/executive-tech.png) |
 | notebook · 手绘网格笔记本风 | infographic · 专业扁平信息图 | executive-tech · 现代科技商务风 |
-| ![](./previews/cozy-handdrawn.png) | ![](./previews/tech-doodle.png) | |
-| cozy-handdrawn · 温暖手绘卡片风 | tech-doodle · 技术简笔画风 | |
+| ![](./previews/cozy-handdrawn.png) | ![](./previews/tech-doodle.png) | ![](./previews/cartoon-infographic.png) |
+| cozy-handdrawn · 温暖手绘卡片风 | tech-doodle · 技术简笔画风 | cartoon-infographic · 卡通信息图风 |
 
 ## 包含 Skills
 
 ### `linyuebanzi-inline-diagram` · 技术长文插图生成
 
-为 3000~8000 字技术长文自动识别插图位置，生成 4-5 张概念图、流程图、对比图、架构图。支持 notebook / infographic / executive-tech / cozy-handdrawn / tech-doodle 五种视觉风格。
+为 3000~8000 字技术长文自动识别插图位置，生成 4-5 张概念图、流程图、对比图、架构图。支持 notebook / infographic / executive-tech / cozy-handdrawn / tech-doodle / cartoon-infographic 六种视觉风格。
 
 - **输入**: 技术长文 Markdown
 - **输出**: 多张 16:9 插图 PNG + 插入位置清单
@@ -78,7 +78,7 @@ linyuebanzi-skills/
 │   │   ├── scripts/
 │   │   │   └── inject_style.py              # 风格注入脚本
 │   │   └── references/                      # 提示词模板、风格定义、案例
-│   │       ├── styles/                      # 5 种风格定义
+│   │       ├── styles/                      # 6 种风格定义
 │   │       ├── examples.md                  # 完整案例
 │   │       └── prompt_template.md           # 骨架模板
 │   └── linyuebanzi-image-gen/               # 通用图像生成 skill

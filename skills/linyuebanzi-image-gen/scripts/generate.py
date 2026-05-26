@@ -322,6 +322,12 @@ def check_blocklist(prompt: str, terms: list[str] | None, context: str = "") -> 
     sys.exit(1)
 
 
+def resolve_item_mode(item: dict, manifest_mode: str) -> str:
+    if manifest_mode == "mixed":
+        return item.get("mode", "generation")
+    return manifest_mode
+
+
 def process_single_item(
     item: dict, output_dir: Path, api_key: str, mode: str,
     aspect_ratio: str, resolution: str, index: int, total: int,
@@ -384,7 +390,7 @@ def poll_one(task_id: str, api_key: str, mode: str, item_id: str, provider: str 
     return (item_id, result, task_id)
 
 
-def run_parallel(items: list, output_dir: Path, api_key: str, mode: str,
+def run_parallel(items: list, output_dir: Path, api_key: str, manifest_mode: str,
                  aspect_ratio: str, resolution: str, provider: str = DEFAULT_PROVIDER) -> list:
     total = len(items)
     print(f"\n{'='*60}")
@@ -393,29 +399,35 @@ def run_parallel(items: list, output_dir: Path, api_key: str, mode: str,
 
     # Step 1: 串行创建所有任务
     task_entries = []
-    for idx, item in enumerate(items, 1):
+    for idx, entry in enumerate(items, 1):
+        # entry is either a dict (item) or tuple (item, item_mode)
+        if isinstance(entry, tuple):
+            item, item_mode = entry
+        else:
+            item, item_mode = entry, manifest_mode
+
         err = validate_item(item)
         if err:
             print(f"  [{idx}/{total}] ✗ 跳过: {err}")
-            task_entries.append((item.get("id", "?"), item, None, "validate"))
+            task_entries.append((item.get("id", "?"), item, None, "validate", item_mode))
             continue
 
         item_id = item["id"]
-        print(f"  [{idx}/{total}] {item_id} → 创建任务")
-        task_id = create_task(item["prompt"], api_key, mode, item.get("images"), aspect_ratio, resolution, provider=provider)
+        print(f"  [{idx}/{total}] {item_id} → 创建任务 ({item_mode})")
+        task_id = create_task(item["prompt"], api_key, item_mode, item.get("images"), aspect_ratio, resolution, provider=provider)
         if not task_id:
-            task_entries.append((item_id, item, None, "create"))
+            task_entries.append((item_id, item, None, "create", item_mode))
         else:
             print(f"    ✓ task_id={task_id}")
-            task_entries.append((item_id, item, task_id, None))
+            task_entries.append((item_id, item, task_id, None, item_mode))
 
     # Step 2: 并行轮询
     print(f"\n  并行轮询中...")
     poll_results = {}
     with ThreadPoolExecutor(max_workers=len(task_entries)) as executor:
         futures = {
-            executor.submit(poll_one, tid, api_key, mode, iid, provider): iid
-            for iid, _, tid, _ in task_entries if tid
+            executor.submit(poll_one, tid, api_key, item_mode, iid, provider): iid
+            for iid, _, tid, _, item_mode in task_entries if tid
         }
         for future in as_completed(futures):
             iid = futures[future]
@@ -431,14 +443,14 @@ def run_parallel(items: list, output_dir: Path, api_key: str, mode: str,
     results = []
     with ThreadPoolExecutor(max_workers=len(task_entries)) as executor:
         futures = {}
-        for iid, item, tid, failed_stage in task_entries:
+        for iid, item, tid, failed_stage, item_mode in task_entries:
             if failed_stage:
                 results.append({"id": iid, "status": "failed", "stage": failed_stage})
                 continue
             if tid is None:
                 continue
             futures[executor.submit(
-                _download_item, iid, item, poll_results.get(iid), output_dir, mode, api_key, tid,
+                _download_item, iid, item, poll_results.get(iid), output_dir, item_mode, api_key, tid,
             )] = iid
         for future in as_completed(futures):
             iid = futures[future]
@@ -622,7 +634,8 @@ def main():
                 except SystemExit:
                     results.append({"id": item.get("id", "?"), "status": "failed", "stage": "blocklist"})
                     continue
-                filtered.append(item)
+                item_mode = resolve_item_mode(item, mode)
+                filtered.append((item, item_mode))
             results += run_parallel(filtered, output_dir, api_key, mode, aspect_ratio, resolution, provider=provider)
         else:
             results = []
@@ -633,7 +646,8 @@ def main():
                     results.append({"id": item.get("id", "?"), "status": "failed", "stage": "validate"})
                     continue
                 check_blocklist(item["prompt"], blocklist, context=item.get("id", f"item-{idx}"))
-                results.append(process_single_item(item, output_dir, api_key, mode, aspect_ratio, resolution, idx, total, provider=provider))
+                item_mode = resolve_item_mode(item, mode)
+                results.append(process_single_item(item, output_dir, api_key, item_mode, aspect_ratio, resolution, idx, total, provider=provider))
 
         # 写运行元数据
         meta_path = output_dir / "_run_metadata.json"

@@ -22,11 +22,12 @@ import re
 import sys
 from pathlib import Path
 
-STYLE_CHOICES = ("notebook", "infographic", "executive-tech", "cozy-handdrawn", "tech-doodle")
+STYLE_CHOICES = ("notebook", "infographic", "executive-tech", "cozy-handdrawn", "tech-doodle", "cartoon-infographic")
 
-# cozy-handdrawn 需要卡通参考图,走 edit 模式;其他风格走 generation
-COZY_REFERENCE_IMAGE = "https://r2.cloudnative101.net/assets/katong.png"
+# cozy-handdrawn 始终走 edit 模式; cartoon-infographic 按 item 的 needs_character 动态切换
+CARTOON_REFERENCE_IMAGE = "https://r2.cloudnative101.net/assets/katong.png"
 EDIT_MODE_STYLES = {"cozy-handdrawn"}
+CONDITIONAL_EDIT_STYLES = {"cartoon-infographic"}
 
 
 def extract_style_prefix(style_raw: str) -> str:
@@ -121,6 +122,7 @@ def main():
         sys.exit(1)
 
     use_edit = args.style in EDIT_MODE_STYLES
+    is_conditional = args.style in CONDITIONAL_EDIT_STYLES
     for item in items:
         if "prompt" not in item:
             print(f"  ⚠ 跳过(无 prompt): {item.get('id', '?')}")
@@ -128,11 +130,19 @@ def main():
         clean_body = strip_known_style_prefix(item["prompt"], known_prefixes)
         item["prompt"] = compose_prompt(clean_body, style_prefix)
         if use_edit:
-            item["images"] = [COZY_REFERENCE_IMAGE]
+            item["images"] = [CARTOON_REFERENCE_IMAGE]
+        elif is_conditional and item.get("needs_character"):
+            item["images"] = [CARTOON_REFERENCE_IMAGE]
+            item["mode"] = "edit"
 
     if use_edit:
         manifest["mode"] = "edit"
-        print(f"✓ cozy-handdrawn 模式: 已切换为 edit + 参考图")
+        print(f"✓ {args.style} 模式: 已切换为 edit + 参考图")
+    elif is_conditional:
+        # 混合模式: needs_character 的 item 走 edit, 其他走 generation
+        manifest["mode"] = "mixed"
+        edit_count = sum(1 for it in items if it.get("mode") == "edit")
+        print(f"✓ {args.style} 模式: 混合模式({edit_count} 张含卡通人物走 edit, 其余走 generation)")
 
     output_path = Path(args.output) if args.output else manifest_path.with_name(
         f"{manifest_path.stem}-styled{manifest_path.suffix}"
