@@ -241,13 +241,13 @@ def run_parallel(items: list, output_dir: Path, provider, mode: str,
 
 
 def run_single(mode: str, prompt: str, images: Optional[list[str]], name_tag: str,
-               output_dir: Path, provider) -> None:
+               output_dir: Path, provider, aspect_ratio: str, resolution: str) -> None:
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     file_stem = f"{name_tag}-{timestamp}"
 
     print(f"→ 创建{mode}任务")
 
-    task_id = provider.create_task(prompt, mode, images)
+    task_id = provider.create_task(prompt, mode, images, aspect_ratio, resolution)
     if not task_id:
         print("✗ 创建任务失败")
         sys.exit(1)
@@ -283,7 +283,7 @@ def run_single(mode: str, prompt: str, images: Optional[list[str]], name_tag: st
             "task_id": task_id,
             "mode": mode,
             "image_urls": result_images,
-            "params": {"aspect_ratio": "16:9", "resolution": "2K"},
+            "params": {"aspect_ratio": aspect_ratio, "resolution": resolution},
         }, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
@@ -458,7 +458,7 @@ def main():
         sys.exit(1)
 
     check_blocklist(prompt, blocklist)
-    run_single(args.mode, prompt, images, args.name_tag, output_dir, provider)
+    run_single(args.mode, prompt, images, args.name_tag, output_dir, provider, args.aspect_ratio, args.resolution)
 
 
 if __name__ == "__main__":
