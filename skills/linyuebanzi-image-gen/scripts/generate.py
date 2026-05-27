@@ -47,256 +47,33 @@ import argparse
 import json
 import os
 import sys
-import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-import urllib.request
-import urllib.error
+from providers import get_provider, get_provider_class
+from providers.base import download_image
 
 # ============================================================
-# 配置
+# 默认配置
 # ============================================================
-
-PROVIDERS = {
-    "mulerun": {
-        "env_var": "MULERUN_API_KEY",
-        "create_url": "https://api.mulerun.com/vendors/google/v1/nano-banana-2",
-        "poll_url": "https://api.mulerun.com/vendors/google/v1/nano-banana-2",
-    },
-    "apimart": {
-        "env_var": "APIMART_API_KEY",
-        "create_url": "https://api.apimart.ai/v1/images/generations",
-        "poll_url": "https://api.apimart.ai/v1/tasks",
-    },
-    "atlascloud": {
-        "env_var": "ATLASCLOUD_API_KEY",
-        "create_url": "https://api.atlascloud.ai/api/v1/model/generateImage",
-        "poll_url": "https://api.atlascloud.ai/api/v1/model/prediction",
-    },
-}
 
 DEFAULT_ASPECT_RATIO = "16:9"
 DEFAULT_RESOLUTION = "2K"
 DEFAULT_PROVIDER = "mulerun"
 
-POLL_INTERVAL = 5
-POLL_MAX_TIMES = 36  # 3 分钟
-
-DEFAULT_USER_AGENT = (
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-    "AppleWebKit/537.36 (KHTML, like Gecko) "
-    "Chrome/122.0.0.0 Safari/537.36"
-)
-
 # ============================================================
 
 
-def http_request(method: str, url: str, headers: dict, data: bytes | None = None) -> dict:
-    if "User-Agent" not in headers and "user-agent" not in headers:
-        headers = {**headers, "User-Agent": DEFAULT_USER_AGENT}
-    req = urllib.request.Request(url, data=data, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            body = resp.read().decode("utf-8")
-            return {"status": resp.status, "body": json.loads(body) if body else {}}
-    except urllib.error.HTTPError as e:
-        err_body = e.read().decode("utf-8") if e.fp else ""
-        return {"status": e.code, "body": err_body, "error": str(e)}
-    except Exception as e:
-        return {"status": 0, "body": "", "error": str(e)}
-
-
-def _build_create_payload(provider: str, prompt: str, mode: str, images: list[str] | None,
-                          aspect_ratio: str, resolution: str) -> tuple[str, dict]:
-    """返回 (create_url, payload)"""
-    cfg = PROVIDERS[provider]
-
-    if provider == "mulerun":
-        path = "edit" if mode == "edit" else "generation"
-        create_url = f"{cfg['create_url']}/{path}"
-        payload = {
-            "prompt": prompt,
-            "aspect_ratio": aspect_ratio,
-            "resolution": resolution,
-        }
-        if mode == "edit" and images:
-            payload["images"] = images
-        return create_url, payload
-
-    if provider == "apimart":
-        payload = {
-            "model": "gpt-image-2-official",
-            "prompt": prompt,
-            "size": aspect_ratio,
-            "resolution": resolution.lower(),
-            "quality": "high",
-            "n": 1,
-        }
-        if images:
-            payload["image_urls"] = images
-        return cfg["create_url"], payload
-
-    # atlascloud
-    size_map = {
-        "16:9": "2560x1440",
-        "9:16": "1440x2560",
-        "1:1": "1024x1024",
-    }
-    size = size_map.get(aspect_ratio, "2560x1440")
-    model = "openai/gpt-image-2/edit" if mode == "edit" else "openai/gpt-image-2/text-to-image"
-    payload = {
-        "model": model,
-        "prompt": prompt,
-        "size": size,
-        "quality": "high",
-    }
-    if mode == "edit" and images:
-        payload["images"] = images
-    return cfg["create_url"], payload
-
-
-def _parse_task_id(provider: str, resp: dict) -> str | None:
-    if provider == "mulerun":
-        return resp["body"]["task_info"]["id"]
-    if provider == "apimart":
-        data = resp["body"].get("data")
-        if isinstance(data, list) and data:
-            return data[0].get("task_id")
-        return None
-    # atlascloud: {"data":{"id":"xxx"}}
-    data = resp["body"].get("data", {})
-    return data.get("id")
-
-
-def _build_poll_url(provider: str, task_id: str, mode: str = "generation") -> str:
-    cfg = PROVIDERS[provider]
-    if provider == "mulerun":
-        path = "edit" if mode == "edit" else "generation"
-        return f"{cfg['poll_url']}/{path}/{task_id}"
-    if provider == "apimart":
-        return f"{cfg['poll_url']}/{task_id}?language=zh"
-    # atlascloud
-    return f"{cfg['poll_url']}/{task_id}"
-
-
-def _parse_poll_status(provider: str, resp: dict) -> tuple[str, dict]:
-    """返回 (status, raw_body), status 归一化为 completed/polling/failed"""
-    if provider == "mulerun":
-        task_info = resp["body"].get("task_info", {})
-        status = task_info.get("status", "unknown")
-        if status in ("completed", "succeeded"):
-            return "completed", resp["body"]
-        if status in ("failed", "error"):
-            return "failed", resp["body"]
-        return "polling", resp["body"]
-
-    if provider == "apimart":
-        data = resp["body"].get("data", {})
-        status = data.get("status", "unknown")
-        if status == "completed":
-            return "completed", data
-        if status in ("failed", "cancelled"):
-            return "failed", data
-        return "polling", data
-
-    # atlascloud: resp["data"]["status"] = processing/completed/succeeded/failed
-    data = resp["body"].get("data", {})
-    status = data.get("status", "unknown")
-    if status in ("completed", "succeeded"):
-        return "completed", data
-    if status in ("failed", "error"):
-        return "failed", data
-    return "polling", data
-
-
-def _extract_images(provider: str, poll_body: dict) -> list[str]:
-    """从轮询结果中提取图片 URL 列表,归一化为平铺的 URL 数组"""
-    if provider == "mulerun":
-        return poll_body.get("images", [])
-
-    if provider == "apimart":
-        result = poll_body.get("result", {})
-        image_items = result.get("images", [])
-        urls = []
-        for item in image_items:
-            item_urls = item.get("url", [])
-            urls.extend(item_urls)
-        return urls
-
-    # atlascloud: data.outputs[0] is a URL string
-    outputs = poll_body.get("outputs", [])
-    return [u for u in outputs if isinstance(u, str) and u.startswith("http")]
-
-
-def create_task(prompt: str, api_key: str, mode: str, images: list[str] | None = None,
-                aspect_ratio: str = DEFAULT_ASPECT_RATIO, resolution: str = DEFAULT_RESOLUTION,
-                provider: str = DEFAULT_PROVIDER) -> str | None:
-    create_url, payload = _build_create_payload(provider, prompt, mode, images, aspect_ratio, resolution)
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-
-    resp = http_request("POST", create_url, headers, json.dumps(payload).encode("utf-8"))
-    if not (200 <= resp["status"] < 300):
-        print(f"    ✗ 创建任务失败,HTTP {resp['status']}")
-        print(f"      响应: {resp.get('body')}")
-        return None
-
-    return _parse_task_id(provider, resp)
-
-
-def poll_task(task_id: str, api_key: str, mode: str,
-              provider: str = DEFAULT_PROVIDER) -> dict | None:
-    url = _build_poll_url(provider, task_id, mode)
-    headers = {"Authorization": f"Bearer {api_key}"}
-
-    for i in range(POLL_MAX_TIMES):
-        time.sleep(POLL_INTERVAL)
-        elapsed = (i + 1) * POLL_INTERVAL
-        resp = http_request("GET", url, headers)
-        if resp["status"] != 200:
-            print(f"    [第 {i+1} 次,已等 {elapsed}s] HTTP {resp['status']},继续等")
-            continue
-
-        status, poll_body = _parse_poll_status(provider, resp)
-
-        if status == "completed":
-            print(f"    ✓ 完成,耗时约 {elapsed}s")
-            return {"images": _extract_images(provider, poll_body)}
-        elif status == "failed":
-            print(f"    ✗ 任务失败: {json.dumps(poll_body, ensure_ascii=False)}")
-            return None
-        else:
-            print(f"    [第 {i+1} 次,已等 {elapsed}s] 状态: {status}")
-
-    print(f"    ✗ 轮询超时({POLL_MAX_TIMES * POLL_INTERVAL}s)")
-    return None
-
-
-def download_image(url: str, save_path: Path) -> bool:
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": DEFAULT_USER_AGENT})
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            save_path.write_bytes(resp.read())
-        return True
-    except Exception as e:
-        print(f"    ✗ 下载失败: {e}")
-        print(f"      可手动打开: {url}")
-        return False
-
-
-def validate_item(item: dict) -> str | None:
+def validate_item(item: dict) -> Optional[str]:
     missing = [f for f in ("id", "prompt") if f not in item or not item[f]]
     if missing:
         return f"缺少字段: {', '.join(missing)}"
     return None
 
 
-def load_blocklist(blocklist_path: str | None) -> list[str] | None:
+def load_blocklist(blocklist_path: Optional[str]) -> Optional[list[str]]:
     if not blocklist_path:
         return None
     p = Path(blocklist_path)
@@ -310,7 +87,7 @@ def load_blocklist(blocklist_path: str | None) -> list[str] | None:
     return terms
 
 
-def check_blocklist(prompt: str, terms: list[str] | None, context: str = "") -> None:
+def check_blocklist(prompt: str, terms: Optional[list[str]], context: str = "") -> None:
     if not terms:
         return
     hits = [t for t in terms if t in prompt]
@@ -323,22 +100,21 @@ def check_blocklist(prompt: str, terms: list[str] | None, context: str = "") -> 
 
 
 def process_single_item(
-    item: dict, output_dir: Path, api_key: str, mode: str,
+    item: dict, output_dir: Path, provider, mode: str,
     aspect_ratio: str, resolution: str, index: int, total: int,
-    provider: str = DEFAULT_PROVIDER,
 ) -> dict:
     item_id = item["id"]
     images = item.get("images")
 
     print(f"\n[{index}/{total}] {item_id}")
 
-    task_id = create_task(item["prompt"], api_key, mode, images, aspect_ratio, resolution, provider=provider)
+    task_id = provider.create_task(item["prompt"], mode, images, aspect_ratio, resolution)
     if not task_id:
         return {"id": item_id, "status": "failed", "stage": "create"}
     print(f"    ✓ task_id: {task_id}")
 
     print(f"    → 轮询中")
-    result = poll_task(task_id, api_key, mode, provider=provider)
+    result = provider.poll_task(task_id, mode)
     if not result:
         return {"id": item_id, "status": "failed", "stage": "poll", "task_id": task_id}
 
@@ -379,79 +155,8 @@ def process_single_item(
     }
 
 
-def poll_one(task_id: str, api_key: str, mode: str, item_id: str, provider: str = DEFAULT_PROVIDER) -> tuple:
-    result = poll_task(task_id, api_key, mode, provider=provider)
-    return (item_id, result, task_id)
-
-
-def run_parallel(items: list, output_dir: Path, api_key: str, mode: str,
-                 aspect_ratio: str, resolution: str, provider: str = DEFAULT_PROVIDER) -> list:
-    total = len(items)
-    print(f"\n{'='*60}")
-    print(f"并行模式 · {total} 项同时跑")
-    print(f"{'='*60}")
-
-    # Step 1: 串行创建所有任务
-    task_entries = []
-    for idx, item in enumerate(items, 1):
-        err = validate_item(item)
-        if err:
-            print(f"  [{idx}/{total}] ✗ 跳过: {err}")
-            task_entries.append((item.get("id", "?"), item, None, "validate"))
-            continue
-
-        item_id = item["id"]
-        print(f"  [{idx}/{total}] {item_id} → 创建任务")
-        task_id = create_task(item["prompt"], api_key, mode, item.get("images"), aspect_ratio, resolution, provider=provider)
-        if not task_id:
-            task_entries.append((item_id, item, None, "create"))
-        else:
-            print(f"    ✓ task_id={task_id}")
-            task_entries.append((item_id, item, task_id, None))
-
-    # Step 2: 并行轮询
-    print(f"\n  并行轮询中...")
-    poll_results = {}
-    with ThreadPoolExecutor(max_workers=len(task_entries)) as executor:
-        futures = {
-            executor.submit(poll_one, tid, api_key, mode, iid, provider): iid
-            for iid, _, tid, _ in task_entries if tid
-        }
-        for future in as_completed(futures):
-            iid = futures[future]
-            try:
-                _, poll_result, _ = future.result()
-                poll_results[iid] = poll_result
-            except Exception as e:
-                print(f"    ✗ {iid} 轮询异常: {e}")
-                poll_results[iid] = None
-
-    # Step 3: 并行下载
-    print(f"\n  并行下载中...")
-    results = []
-    with ThreadPoolExecutor(max_workers=len(task_entries)) as executor:
-        futures = {}
-        for iid, item, tid, failed_stage in task_entries:
-            if failed_stage:
-                results.append({"id": iid, "status": "failed", "stage": failed_stage})
-                continue
-            if tid is None:
-                continue
-            futures[executor.submit(
-                _download_item, iid, item, poll_results.get(iid), output_dir, mode, api_key, tid,
-            )] = iid
-        for future in as_completed(futures):
-            iid = futures[future]
-            try:
-                results.append(future.result())
-            except Exception as e:
-                results.append({"id": iid, "status": "failed", "stage": "exception"})
-
-    return results
-
-
-def _download_item(iid: str, item: dict, poll_result: dict | None,
-                   output_dir: Path, mode: str, api_key: str, task_id: str) -> dict:
+def _download_item(iid: str, item: dict, poll_result: Optional[dict],
+                   output_dir: Path, task_id: str) -> dict:
     if not poll_result:
         return {"id": iid, "status": "failed", "stage": "poll", "task_id": task_id}
 
@@ -473,23 +178,83 @@ def _download_item(iid: str, item: dict, poll_result: dict | None,
     return {"id": iid, "status": "completed", "image_urls": images, "local_images": image_paths, "task_id": task_id}
 
 
-def run_single(mode: str, prompt: str, images: list[str] | None, name_tag: str,
-               output_dir: Path, api_key: str, aspect_ratio: str, resolution: str,
-               provider: str = DEFAULT_PROVIDER) -> None:
+def run_parallel(items: list, output_dir: Path, provider, mode: str,
+                 aspect_ratio: str, resolution: str) -> list:
+    total = len(items)
+    print(f"\n{'='*60}")
+    print(f"并行模式 · {total} 项同时跑")
+    print(f"{'='*60}")
+
+    task_entries = []
+    for idx, item in enumerate(items, 1):
+        err = validate_item(item)
+        if err:
+            print(f"  [{idx}/{total}] ✗ 跳过: {err}")
+            task_entries.append((item.get("id", "?"), item, None, "validate"))
+            continue
+
+        item_id = item["id"]
+        print(f"  [{idx}/{total}] {item_id} → 创建任务")
+        task_id = provider.create_task(item["prompt"], mode, item.get("images"), aspect_ratio, resolution)
+        if not task_id:
+            task_entries.append((item_id, item, None, "create"))
+        else:
+            print(f"    ✓ task_id={task_id}")
+            task_entries.append((item_id, item, task_id, None))
+
+    print(f"\n  并行轮询中...")
+    poll_results = {}
+    with ThreadPoolExecutor(max_workers=len(task_entries)) as executor:
+        futures = {}
+        for iid, _, tid, _ in task_entries:
+            if tid:
+                futures[executor.submit(provider.poll_task, tid, mode)] = iid
+        for future in as_completed(futures):
+            iid = futures[future]
+            try:
+                poll_results[iid] = future.result()
+            except Exception as e:
+                print(f"    ✗ {iid} 轮询异常: {e}")
+                poll_results[iid] = None
+
+    print(f"\n  并行下载中...")
+    results = []
+    with ThreadPoolExecutor(max_workers=len(task_entries)) as executor:
+        futures = {}
+        for iid, item, tid, failed_stage in task_entries:
+            if failed_stage:
+                results.append({"id": iid, "status": "failed", "stage": failed_stage})
+                continue
+            if tid is None:
+                continue
+            futures[executor.submit(
+                _download_item, iid, item, poll_results.get(iid), output_dir, tid,
+            )] = iid
+        for future in as_completed(futures):
+            iid = futures[future]
+            try:
+                results.append(future.result())
+            except Exception as e:
+                results.append({"id": iid, "status": "failed", "stage": "exception"})
+
+    return results
+
+
+def run_single(mode: str, prompt: str, images: Optional[list[str]], name_tag: str,
+               output_dir: Path, provider) -> None:
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     file_stem = f"{name_tag}-{timestamp}"
 
-    item_id = file_stem
     print(f"→ 创建{mode}任务")
 
-    task_id = create_task(prompt, api_key, mode, images, aspect_ratio, resolution, provider=provider)
+    task_id = provider.create_task(prompt, mode, images)
     if not task_id:
         print("✗ 创建任务失败")
         sys.exit(1)
     print(f"✓ task_id: {task_id}")
 
-    print(f"→ 轮询中(最多等 {POLL_MAX_TIMES * POLL_INTERVAL}s)")
-    result = poll_task(task_id, api_key, mode, provider=provider)
+    print(f"→ 轮询中(最多等 {provider.POLL_MAX_TIMES * provider.POLL_INTERVAL}s)")
+    result = provider.poll_task(task_id, mode)
     if not result:
         print("✗ 任务失败或超时")
         sys.exit(1)
@@ -518,7 +283,7 @@ def run_single(mode: str, prompt: str, images: list[str] | None, name_tag: str,
             "task_id": task_id,
             "mode": mode,
             "image_urls": result_images,
-            "params": {"aspect_ratio": aspect_ratio, "resolution": resolution},
+            "params": {"aspect_ratio": "16:9", "resolution": "2K"},
         }, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
@@ -535,6 +300,9 @@ def run_single(mode: str, prompt: str, images: list[str] | None, name_tag: str,
 
 
 def main():
+    # 确保 providers 包可被导入 (脚本直接运行时的路径问题)
+    sys.path.insert(0, str(Path(__file__).parent))
+
     parser = argparse.ArgumentParser(description="通用图像生成器 (MuleRun / APImart / Atlas Cloud)")
 
     parser.add_argument("--provider", choices=["mulerun", "apimart", "atlascloud"], default=DEFAULT_PROVIDER,
@@ -554,28 +322,32 @@ def main():
     args = parser.parse_args()
 
     # Provider 决策: 显式传了就用显式的,否则自动检测
-    provider = args.provider
+    provider_name = args.provider
     has_mulerun = bool(os.environ.get("MULERUN_API_KEY"))
     has_apimart = bool(os.environ.get("APIMART_API_KEY"))
     has_atlascloud = bool(os.environ.get("ATLASCLOUD_API_KEY"))
     if args.provider == DEFAULT_PROVIDER and not has_mulerun:
         if has_apimart:
-            provider = "apimart"
+            provider_name = "apimart"
             print(f"  自动检测: APIMART_API_KEY 已设置,切换到 apimart")
         elif has_atlascloud:
-            provider = "atlascloud"
+            provider_name = "atlascloud"
             print(f"  自动检测: ATLASCLOUD_API_KEY 已设置,切换到 atlascloud")
+
+    provider_cls = get_provider_class(provider_name)
 
     # 加载 blocklist
     blocklist = load_blocklist(args.blocklist)
 
     # 鉴权
-    env_var = PROVIDERS[provider]["env_var"]
+    env_var = provider_cls.env_var
     api_key = os.environ.get(env_var)
     if not api_key:
-        print(f"✗ 未找到环境变量 {env_var}")
-        print(f"  请先设置: export {env_var}=sk-xxx")
+        print(f"✗ 未找到环境变量 {provider_cls.env_var}")
+        print(f"  请先设置: export {provider_cls.env_var}=sk-xxx")
         sys.exit(1)
+
+    provider = get_provider(provider_name, api_key)
 
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -603,7 +375,7 @@ def main():
 
         total = len(items)
         print("=" * 60)
-        print(f"批量{mode}模式 · {total} 项 · {'并行' if args.parallel else '串行'} · provider={provider}")
+        print(f"批量{mode}模式 · {total} 项 · {'并行' if args.parallel else '串行'} · provider={provider_name}")
         print(f"  参数: aspect_ratio={aspect_ratio}, resolution={resolution}")
         print(f"  输出: {output_dir}")
         print("=" * 60)
@@ -623,7 +395,7 @@ def main():
                     results.append({"id": item.get("id", "?"), "status": "failed", "stage": "blocklist"})
                     continue
                 filtered.append(item)
-            results += run_parallel(filtered, output_dir, api_key, mode, aspect_ratio, resolution, provider=provider)
+            results += run_parallel(filtered, output_dir, provider, mode, aspect_ratio, resolution)
         else:
             results = []
             for idx, item in enumerate(items, 1):
@@ -633,14 +405,14 @@ def main():
                     results.append({"id": item.get("id", "?"), "status": "failed", "stage": "validate"})
                     continue
                 check_blocklist(item["prompt"], blocklist, context=item.get("id", f"item-{idx}"))
-                results.append(process_single_item(item, output_dir, api_key, mode, aspect_ratio, resolution, idx, total, provider=provider))
+                results.append(process_single_item(item, output_dir, provider, mode, aspect_ratio, resolution, idx, total))
 
         # 写运行元数据
         meta_path = output_dir / "_run_metadata.json"
         meta_path.write_text(
             json.dumps({
                 "timestamp": datetime.now().strftime("%Y%m%d-%H%M%S"),
-                "provider": provider,
+                "provider": provider_name,
                 "mode": mode,
                 "total": total,
                 "results": results,
@@ -686,7 +458,7 @@ def main():
         sys.exit(1)
 
     check_blocklist(prompt, blocklist)
-    run_single(args.mode, prompt, images, args.name_tag, output_dir, api_key, args.aspect_ratio, args.resolution, provider=provider)
+    run_single(args.mode, prompt, images, args.name_tag, output_dir, provider)
 
 
 if __name__ == "__main__":
