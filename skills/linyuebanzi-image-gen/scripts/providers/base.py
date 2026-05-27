@@ -2,6 +2,7 @@ import json
 import time
 import urllib.request
 import urllib.error
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional
 
@@ -13,7 +14,7 @@ DEFAULT_USER_AGENT = (
 )
 
 
-class BaseProvider:
+class BaseProvider(ABC):
     env_var: str = ""
     create_url: str = ""
     poll_url: str = ""
@@ -23,22 +24,27 @@ class BaseProvider:
     def __init__(self, api_key: str):
         self.api_key = api_key
 
+    @abstractmethod
     def build_create_payload(
         self, prompt: str, mode: str, images: Optional[list[str]],
         aspect_ratio: str, resolution: str,
     ) -> tuple[str, dict]:
         raise NotImplementedError
 
+    @abstractmethod
     def parse_task_id(self, resp: dict) -> Optional[str]:
         raise NotImplementedError
 
+    @abstractmethod
     def build_poll_url(self, task_id: str, mode: str) -> str:
         raise NotImplementedError
 
+    @abstractmethod
     def parse_poll_status(self, resp: dict) -> tuple[str, dict]:
         """Return (status, body).  status is one of completed / polling / failed."""
         raise NotImplementedError
 
+    @abstractmethod
     def extract_images(self, poll_body: dict) -> list[str]:
         raise NotImplementedError
 

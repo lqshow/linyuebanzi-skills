@@ -19,4 +19,12 @@ def get_provider(name: str, api_key: str):
 
 def get_provider_class(name: str):
     """Return the provider class (for accessing class-level attributes like env_var)."""
-    return _PROVIDERS[name]
+    cls = _PROVIDERS.get(name)
+    if cls is None:
+        raise ValueError(f"Unknown provider: {name}")
+    return cls
+
+
+def list_providers() -> list[str]:
+    """Return all registered provider names."""
+    return list(_PROVIDERS.keys())

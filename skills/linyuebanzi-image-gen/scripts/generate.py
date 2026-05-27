@@ -52,8 +52,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from providers import get_provider, get_provider_class
-from providers.base import download_image
+from providers import get_provider, get_provider_class, list_providers
+from providers.base import BaseProvider, download_image
 
 # ============================================================
 # 默认配置
@@ -305,7 +305,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="通用图像生成器 (MuleRun / APImart / Atlas Cloud)")
 
-    parser.add_argument("--provider", choices=["mulerun", "apimart", "atlascloud"], default=DEFAULT_PROVIDER,
+    parser.add_argument("--provider", choices=list_providers(), default=DEFAULT_PROVIDER,
                         help=f"API 提供商(默认 {DEFAULT_PROVIDER})")
     parser.add_argument("--mode", choices=["generation", "edit"], help="生成模式: generation(纯文本生图) 或 edit(带参考图)")
     prompt_src = parser.add_mutually_exclusive_group()
