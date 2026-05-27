@@ -100,7 +100,7 @@ def check_blocklist(prompt: str, terms: Optional[list[str]], context: str = "") 
 
 
 def process_single_item(
-    item: dict, output_dir: Path, provider, mode: str,
+    item: dict, output_dir: Path, provider: BaseProvider, mode: str,
     aspect_ratio: str, resolution: str, index: int, total: int,
 ) -> dict:
     item_id = item["id"]
