@@ -22,7 +22,7 @@ import re
 import sys
 from pathlib import Path
 
-STYLE_CHOICES = ("notebook", "infographic", "executive-tech", "cozy-handdrawn", "tech-doodle", "cartoon-infographic")
+STYLE_CHOICES = ("notebook", "infographic", "executive-tech", "cozy-handdrawn", "tech-doodle", "cartoon-infographic", "whiteboard-sketch")
 
 # cozy-handdrawn 始终走 edit 模式; cartoon-infographic 按 item 的 needs_character 动态切换
 CARTOON_REFERENCE_IMAGE = "https://r2.cloudnative101.net/assets/katong.png"
@@ -65,7 +65,7 @@ def load_all_style_prefixes(styles_dir: Path) -> list[str]:
 def main():
     parser = argparse.ArgumentParser(description="风格注入脚本")
     parser.add_argument("--style", required=True, choices=list(STYLE_CHOICES),
-                        help="风格: notebook / infographic / executive-tech / cozy-handdrawn")
+                        help="风格: notebook / infographic / executive-tech / cozy-handdrawn / tech-doodle / cartoon-infographic / whiteboard-sketch")
     src = parser.add_mutually_exclusive_group(required=True)
     src.add_argument("--prompt-file", type=str, help="单张图的 prompt 文件路径")
     src.add_argument("--manifest", type=str, help="manifest JSON 路径")

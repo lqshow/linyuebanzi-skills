@@ -1,7 +1,7 @@
 ---
 name: linyuebanzi-inline-diagram
 description: |
-  为林月半子(LQ)的技术长文自动识别插图位置,并生成 16:9 概念图/流程图/对比图/架构图。支持六种风格:手绘网格笔记本风(notebook)、专业扁平信息图(infographic)、现代高级科技商务风(executive-tech)、温暖手绘卡片风(cozy-handdrawn)、技术简笔画风(tech-doodle)和卡通信息图风(cartoon-infographic)。当用户需要给已经写好的文章配插图、加配图、排版优化、让长文不那么单调时使用。触发词包括:加插图、配图、加几张图、让文章更生动、排版优化、文章太单调了、给文章画几张手绘图、手绘示意图、信息图、商务风配图、科技商务风。skill 的核心价值在于"智能识别文章里哪些段落值得配图"——优先选抽象概念、流程循环、对比分类、架构组件这四类地方,不在每段机械配图。使用 MuleRun Nano Banana 2 Generation API 生成,支持通过 --style 切换不同视觉风格。不要用于封面图(走封面 skill)、截图替代、纯代码展示、表情包生成。
+  为林月半子(LQ)的技术长文自动识别插图位置,并生成 16:9 概念图/流程图/对比图/架构图。支持七种风格:手绘网格笔记本风(notebook)、专业扁平信息图(infographic)、现代高级科技商务风(executive-tech)、温暖手绘卡片风(cozy-handdrawn)、技术简笔画风(tech-doodle)、卡通信息图风(cartoon-infographic)和白板手绘风(whiteboard-sketch)。当用户需要给已经写好的文章配插图、加配图、排版优化、让长文不那么单调时使用。触发词包括:加插图、配图、加几张图、让文章更生动、排版优化、文章太单调了、给文章画几张手绘图、手绘示意图、信息图、商务风配图、科技商务风。skill 的核心价值在于"智能识别文章里哪些段落值得配图"——优先选抽象概念、流程循环、对比分类、架构组件这四类地方,不在每段机械配图。使用 MuleRun Nano Banana 2 Generation API 生成,支持通过 --style 切换不同视觉风格。不要用于封面图(走封面 skill)、截图替代、纯代码展示、表情包生成。
 ---
 
 # 林月半子技术长文插图生成器
@@ -50,7 +50,11 @@ description: |
 干净白底 + 手绘圆角容器 + 功能性柔和多色 + 可选 LQ 卡通形象辅助叙事。适合技术博客、产品文档、知识管理、教程配图。需要小人的场景自动走 edit 模式引入卡通参考图,不需要的走纯 generation。
 > "用卡通信息图风"
 
-如果用户没明确偏好，**必须先问用户要 notebook、infographic、executive-tech、cozy-handdrawn、tech-doodle 还是 cartoon-infographic，再继续**。不要直接用默认风格生成。
+**whiteboard-sketch（白板手绘风）**
+暖奶油底 + 黑色手绘马克笔线条 + 柔和粉彩圆角容器 + 简约火柴人角色 + 教育图示布局。像一位 skilled illustrator 在白板上随手画的示意图,亲切、清晰、有温度。适合技术教程、概念讲解、流程说明、架构入门。
+> "用白板手绘风"
+
+如果用户没明确偏好，**必须先问用户要 notebook、infographic、executive-tech、cozy-handdrawn、tech-doodle、cartoon-infographic 还是 whiteboard-sketch，再继续**。不要直接用默认风格生成。
 
 ### 第一步:分析文章,识别 4-5 个"值得配图"的位置
 
@@ -246,7 +250,7 @@ diagrams/2026-04-21-hermes-multi-agent/
 
 ## 参考资料
 
-- 风格模板:`references/styles/notebook.md`(手绘笔记本风) | `references/styles/infographic.md`(信息图风) | `references/styles/executive-tech.md`(现代高级科技商务风) | `references/styles/cozy-handdrawn.md`(温暖手绘卡片风) | `references/styles/tech-doodle.md`(技术简笔画风) | `references/styles/cartoon-infographic.md`(卡通信息图风)
+- 风格模板:`references/styles/notebook.md`(手绘笔记本风) | `references/styles/infographic.md`(信息图风) | `references/styles/executive-tech.md`(现代高级科技商务风) | `references/styles/cozy-handdrawn.md`(温暖手绘卡片风) | `references/styles/tech-doodle.md`(技术简笔画风) | `references/styles/cartoon-infographic.md`(卡通信息图风) | `references/styles/whiteboard-sketch.md`(白板手绘风)
 - 手绘图提示词结构化骨架:`references/prompt_template.md`
 - 4 种图类型案例 + 1 个 `executive-tech` 风格完整案例:`references/examples.md`
 - 通用图像生成脚本:`linyuebanzi-image-gen/scripts/generate.py`
