@@ -379,7 +379,7 @@ def main():
             print(f"✗ manifest JSON 解析失败: {e}")
             sys.exit(1)
 
-        mode = manifest.get("mode", "generation")
+        manifest_mode = manifest.get("mode", "generation")
         aspect_ratio = manifest.get("aspect_ratio", args.aspect_ratio)
         resolution = manifest.get("resolution", args.resolution)
         items = manifest.get("items", [])
@@ -390,7 +390,7 @@ def main():
 
         total = len(items)
         print("=" * 60)
-        print(f"批量{mode}模式 · {total} 项 · {'并行' if args.parallel else '串行'} · provider={provider_name}")
+        print(f"批量{manifest_mode}模式 · {total} 项 · {'并行' if args.parallel else '串行'} · provider={provider_name}")
         print(f"  参数: aspect_ratio={aspect_ratio}, resolution={resolution}")
         print(f"  输出: {output_dir}")
         print("=" * 60)
@@ -429,7 +429,7 @@ def main():
             json.dumps({
                 "timestamp": datetime.now().strftime("%Y%m%d-%H%M%S"),
                 "provider": provider_name,
-                "mode": mode,
+                "mode": manifest_mode,
                 "total": total,
                 "results": results,
                 "params": {"aspect_ratio": aspect_ratio, "resolution": resolution},
