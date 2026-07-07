@@ -22,6 +22,13 @@
 - **输入**: 技术长文 Markdown
 - **输出**: 多张 16:9 插图 PNG + 插入位置清单
 
+### `linyuebanzi-edu-infographic` · 学科知识信息图生成
+
+将任意学科知识点转化为竖版教育信息图（9:16）。输入一个知识点名称（如「声现象」「勾股定理」「光合作用」），自动识别学科/年级/章节、拆解核心子概念、生成插图描述并生图。内置**双层学科准确性检查**：生图前按分学科清单自检提示词，生图后读回 PNG 视觉复核（文字/公式/图示），不通过自动重试，确保交付给学生的内容准确。覆盖物理、数学、化学、生物、语文、历史、英语等学科。
+
+- **输入**: 知识点名称（可含学科/年级）
+- **输出**: 9:16 竖版信息图 PNG
+
 ### `linyuebanzi-image-gen` · 通用图像生成
 
 支持三种生图 API 的执行层，通过 `--provider` 切换：
@@ -81,6 +88,13 @@ linyuebanzi-skills/
 │   │       ├── styles/                      # 7 种风格定义
 │   │       ├── examples.md                  # 完整案例
 │   │       └── prompt_template.md           # 骨架模板
+│   ├── linyuebanzi-edu-infographic/         # 学科知识信息图 skill
+│   │   ├── SKILL.md                         # 入口定义
+│   │   └── references/                      # 提示词模板、插图指引、准确性清单、勘误表
+│   │       ├── prompt_template.md           # 骨架模板
+│   │       ├── illustration_guide.md        # 各知识点插图指引
+│   │       ├── accuracy_checklist.md        # 分学科准确性检查清单
+│   │       └── errata.md                    # 知识勘误表
 │   └── linyuebanzi-image-gen/               # 通用图像生成 skill
 │       ├── SKILL.md                         # 入口定义
 │       └── scripts/
