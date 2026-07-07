@@ -29,6 +29,13 @@
 - **输入**: 知识点名称（可含学科/年级）
 - **输出**: 9:16 竖版信息图 PNG
 
+不同学科示例（初中）：
+
+| | | | |
+|:---:|:---:|:---:|:---:|
+| ![](./previews/edu-physics.png) | ![](./previews/edu-math.png) | ![](./previews/edu-chemistry.png) | ![](./previews/edu-biology.png) |
+| 物理 · 光现象 | 数学 · 勾股定理 | 化学 · 空气的组成 | 生物 · 光合作用 |
+
 ### `linyuebanzi-image-gen` · 通用图像生成
 
 支持三种生图 API 的执行层，通过 `--provider` 切换：
