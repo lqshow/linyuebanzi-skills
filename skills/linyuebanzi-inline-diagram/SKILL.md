@@ -1,7 +1,7 @@
 ---
 name: linyuebanzi-inline-diagram
 description: |
-  为林月半子(LQ)的技术长文自动识别插图位置,并生成 16:9 概念图/流程图/对比图/架构图。支持七种风格:手绘网格笔记本风(notebook)、专业扁平信息图(infographic)、现代高级科技商务风(executive-tech)、温暖手绘卡片风(cozy-handdrawn)、技术简笔画风(tech-doodle)、卡通信息图风(cartoon-infographic)和白板手绘风(whiteboard-sketch)。当用户需要给已经写好的文章配插图、加配图、排版优化、让长文不那么单调时使用。触发词包括:加插图、配图、加几张图、让文章更生动、排版优化、文章太单调了、给文章画几张手绘图、手绘示意图、信息图、商务风配图、科技商务风。skill 的核心价值在于"智能识别文章里哪些段落值得配图"——优先选抽象概念、流程循环、对比分类、架构组件这四类地方,不在每段机械配图。使用 MuleRun Nano Banana 2 Generation API 生成,支持通过 --style 切换不同视觉风格。不要用于封面图(走封面 skill)、截图替代、纯代码展示、表情包生成。
+  为林月半子(LQ)的技术长文自动识别插图位置,并生成 16:9 概念图/流程图/对比图/架构图。支持八种风格:手绘网格笔记本风(notebook)、专业扁平信息图(infographic)、现代高级科技商务风(executive-tech)、温暖手绘卡片风(cozy-handdrawn)、技术简笔画风(tech-doodle)、卡通信息图风(cartoon-infographic)、白板手绘风(whiteboard-sketch)和 SaaS 产品扁平风(saas-flat)。当用户需要给已经写好的文章配插图、加配图、排版优化、让长文不那么单调时使用。触发词包括:加插图、配图、加几张图、让文章更生动、排版优化、文章太单调了、给文章画几张手绘图、手绘示意图、信息图、商务风配图、科技商务风、产品官网风、扁平流程图。skill 的核心价值在于"智能识别文章里哪些段落值得配图"——优先选抽象概念、流程循环、对比分类、架构组件这四类地方,不在每段机械配图。使用 MuleRun Nano Banana 2 Generation API 生成,支持通过 --style 切换不同视觉风格。不要用于封面图(走封面 skill)、截图替代、纯代码展示、表情包生成。
 ---
 
 # 林月半子技术长文插图生成器
@@ -54,7 +54,11 @@ description: |
 暖奶油底 + 黑色手绘马克笔线条 + 柔和粉彩圆角容器 + 简约火柴人角色 + 教育图示布局。像一位 skilled illustrator 在白板上随手画的示意图,亲切、清晰、有温度。适合技术教程、概念讲解、流程说明、架构入门。
 > "用白板手绘风"
 
-如果用户没明确偏好，**必须先问用户要 notebook、infographic、executive-tech、cozy-handdrawn、tech-doodle、cartoon-infographic 还是 whiteboard-sketch，再继续**。不要直接用默认风格生成。
+**saas-flat（SaaS 产品扁平风）**
+纯白底 + 无描边的极淡粉彩圆角卡片 + 左上角黑色圆形步骤编号 + 统一的"只有头"蓝色小机器人 + 扁平小图标 + 语义化彩色箭头(灰蓝主流程 / 绿色成功 / 洋红粉失败回环 / 紫蓝请求返回)+ 超大彩色数字指标。像 SaaS 产品官网或技术分享 PPT 的扁平矢量插画。适合 AI 工程化实践、研发运维流程、MCP/Agent 调用链、效率提升复盘。纯 generation 模式,不需要参考图。
+> "用产品官网那种扁平风" / "用 saas-flat"
+
+如果用户没明确偏好，**必须先问用户要 notebook、infographic、executive-tech、cozy-handdrawn、tech-doodle、cartoon-infographic、whiteboard-sketch 还是 saas-flat，再继续**。不要直接用默认风格生成。
 
 ### 第一步:分析文章,识别 4-5 个"值得配图"的位置
 
@@ -119,7 +123,7 @@ description: |
 - **强调要点**
 - **底部总结文字**(给图一个金句收尾)
 
-**风格前缀**(由 references/styles/{style}.md 提供,**不要改风格本身**)——notebook 风格是黑绿红网格纸基线; infographic 风格是米白底蓝橙双色信息图基线; executive-tech 风格是深靛紫主色 + 卡片式 UI + 杂志化商务科技风; cozy-handdrawn 风格是米白纸感底 + 黑色手绘线条 + 粉彩圆角卡片 + 个人动画形象辅助叙事; tech-doodle 风格是暖白奶油底 + fine-liner 墨线笔触 + 极淡粉彩上色 + 极简火柴人 + 底部荧光笔金句; cartoon-infographic 风格是干净白底 + 手绘圆角容器 + 功能性柔和多色 + 可选 LQ 卡通形象。
+**风格前缀**(由 references/styles/{style}.md 提供,**不要改风格本身**)——notebook 风格是黑绿红网格纸基线; infographic 风格是米白底蓝橙双色信息图基线; executive-tech 风格是深靛紫主色 + 卡片式 UI + 杂志化商务科技风; cozy-handdrawn 风格是米白纸感底 + 黑色手绘线条 + 粉彩圆角卡片 + 个人动画形象辅助叙事; tech-doodle 风格是暖白奶油底 + fine-liner 墨线笔触 + 极淡粉彩上色 + 极简火柴人 + 底部荧光笔金句; cartoon-infographic 风格是干净白底 + 手绘圆角容器 + 功能性柔和多色 + 可选 LQ 卡通形象; saas-flat 风格是纯白底 + 极淡粉彩圆角卡片 + 黑色圆形编号 + 蓝色机器人图标 + 语义化彩色箭头,有横向步骤流+异常回环 / 大标题+三栏场景卡 / 数据流集成架构 / 左右对比四种版式原型,写内容 prompt 时要明确指定用哪个原型、每条箭头的颜色和标签,并遵守 saas-flat.md 里"写内容 prompt 的规则"(标题写 restrained size、机器人写 head-only、不写场景只写小图标、卡片写 borderless),参考案例 10。
 
 ### 第三步:注入风格并调用脚本生成
 
@@ -250,7 +254,7 @@ diagrams/2026-04-21-hermes-multi-agent/
 
 ## 参考资料
 
-- 风格模板:`references/styles/notebook.md`(手绘笔记本风) | `references/styles/infographic.md`(信息图风) | `references/styles/executive-tech.md`(现代高级科技商务风) | `references/styles/cozy-handdrawn.md`(温暖手绘卡片风) | `references/styles/tech-doodle.md`(技术简笔画风) | `references/styles/cartoon-infographic.md`(卡通信息图风) | `references/styles/whiteboard-sketch.md`(白板手绘风)
+- 风格模板:`references/styles/notebook.md`(手绘笔记本风) | `references/styles/infographic.md`(信息图风) | `references/styles/executive-tech.md`(现代高级科技商务风) | `references/styles/cozy-handdrawn.md`(温暖手绘卡片风) | `references/styles/tech-doodle.md`(技术简笔画风) | `references/styles/cartoon-infographic.md`(卡通信息图风) | `references/styles/whiteboard-sketch.md`(白板手绘风) | `references/styles/saas-flat.md`(SaaS 产品扁平风)
 - 手绘图提示词结构化骨架:`references/prompt_template.md`
 - 4 种图类型案例 + 1 个 `executive-tech` 风格完整案例:`references/examples.md`
 - 通用图像生成脚本:`linyuebanzi-image-gen/scripts/generate.py`

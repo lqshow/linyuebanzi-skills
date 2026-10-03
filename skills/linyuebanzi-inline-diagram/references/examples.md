@@ -438,6 +438,67 @@ Bottom summary text:
 
 ---
 
+## 🔷 案例 9:saas-flat 风格 · AI 研发闭环(原型 A:横向步骤流 + 异常回环)
+
+**对应原文**:讲"需求文档 → AI 分析 → 人审方案 → AI 实现 → AI 测试,不符合就加日志查 SLS 再修复"这一段。
+
+**提示词**(只写内容,风格前缀由 `--style saas-flat` 注入;每张卡片的 header 都按 "black circle badge + bold title, left-aligned at top-left" 理解):
+
+```
+Layout prototype: A (horizontal step flow + exception loop). 16:9.
+
+Top row, left to right, 5 step cards + 1 success card, grey-blue chevron arrows between them:
+  1 "需求文档" — white document icon; caption "在平台编写并导出"; pale blue card
+  2 "AI 分析需求" — the head-only blue robot mascot; caption "Codex / Claude"; pale peach card
+  3 "我审核方案" — the flat cartoon man avatar behind a laptop; pale mint card
+  4 "AI 实现并提交" — blue robot + code document icon </>; caption "合并到灰度分支"; pale lavender card
+  5 "AI 自动测试" — browser window with three green check rows; caption "模拟请求 检查是否符合需求"; pale lavender card
+  Success card "完成" — big green check circle; caption "灰度发布"; pale mint card, reached from step 5 by a green arrow labeled "符合"
+
+Bottom: a pale pink container panel holding 3 cards flowing right to left, pink arrows between them:
+  6 "AI 添加日志" — code document icon with a red plus badge
+  7 "通过 MCP 查询日志" — robot -> purple document tile labeled "sls-log-proxy" -> orange bracket tile labeled "阿里云 SLS"
+  8 "AI 分析问题并修复" — robot + wrench icon
+
+Connectors:
+  Magenta-pink arrow labeled "不符合" from step 5 down into step 6.
+  Magenta-pink rounded line labeled "重新提交" from step 8 back up to step 3.
+  Magenta-pink rounded line from the right side looping under the panel into step 8.
+
+No headline, no footer text. All labels exactly as given.
+```
+
+---
+
+## 🔷 案例 10:saas-flat 风格 · 一切皆插件(原型 D:左右对比,已验证效果)
+
+**对应原文**:讲 Harness"一切皆插件"、别的 Agent 是精装房而 Harness 是毛坯房加标准水电接口的段落。效果图见 `previews/saas-flat.png`。
+
+**提示词**(只写内容,风格前缀由 `--style saas-flat` 注入):
+
+```
+Layout prototype: D (left-right comparison). 16:9.
+
+Headline at top center (large bold, restrained size): "一切皆插件"
+Grey subtitle below: "别的 Agent 是精装房，Harness 是毛坯房加标准接口"
+
+Left card (pale grey tint, borderless). Header at top-left: black circle badge "1" + bold title "其他 Agent"; grey caption under the title: "装修好的房子".
+  Center icon (small): a simple flat house outline icon with a small grey padlock badge.
+  Three short rows, each with a small grey cross icon: "功能固定" / "界面固定" / "最多换换家具"
+
+Center between the cards: a small grey circle badge with "VS".
+
+Right card (pale blue tint, borderless). Header at top-left: black circle badge "2" + bold title "DeepSeek Harness"; grey caption under the title: "毛坯房 + 标准接口".
+  Center icon group (small): the head-only blue robot mascot in the middle, surrounded by four small flat puzzle-piece icons, each with a short label: "工具" (blue) / "技能" (violet) / "界面" (orange) / "侧边栏入口" (green). Thin dashed lines connect each puzzle piece to the robot.
+  Three short rows, each with a small green check icon: "全部由插件拼成" / "按需长出新功能" / "房间怎么隔你说了算"
+
+Bottom center, one line of medium bold dark text: "把需求说清楚，它就能长进你自己的软件里", with a violet hand-drawn underline swoosh under "长进你自己的软件里".
+
+All labels exactly as given, no other text.
+```
+
+---
+
 ## 使用这些案例的方法
 
 给新文章生成插图时:

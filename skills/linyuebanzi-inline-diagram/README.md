@@ -6,6 +6,7 @@
 - **infographic** · 专业信息图风: 米白底 + 深褐红标题 + 蓝/橙双色
 - **executive-tech** · 现代高级科技商务风: 米白留白底 + 深靛紫主色 + 卡片式 UI + 仪表盘图表 + 杂志化大标题 + 半调双色调人物/物体
 - **cozy-handdrawn** · 温暖手绘卡片风: 米白纸感底 + 黑色手绘线条 + 粉彩圆角卡片 + 轻漫画式信息图布局 + LQ 个人动画形象辅助叙事
+- **saas-flat** · SaaS 产品扁平风: 纯白底 + 极淡粉彩圆角卡片 + 黑色圆形步骤编号 + 蓝色机器人图标 + 语义化彩色箭头(成功绿 / 回环粉 / 数据流紫蓝)+ 超大彩色数字指标
 
 如果用户没有明确指定风格，必须先询问是 `notebook`、`infographic`、`executive-tech` 还是 `cozy-handdrawn`，不要直接按默认风格生成。
 
@@ -47,7 +48,8 @@ linyuebanzi-inline-diagram/
     │   ├── notebook.md              # 手绘笔记本风风格定义
     │   ├── infographic.md           # 专业信息图风风格定义
     │   ├── executive-tech.md        # 现代高级科技商务风风格定义
-    │   └── cozy-handdrawn.md        # 温暖手绘卡片风风格定义
+    │   ├── cozy-handdrawn.md        # 温暖手绘卡片风风格定义
+    │   └── saas-flat.md             # SaaS 产品扁平风风格定义
     ├── prompt_template.md            # 四种类型图的提示词骨架
     └── examples.md                   # 完整案例
 ```
@@ -130,6 +132,7 @@ python3 linyuebanzi-image-gen/scripts/generate.py \
 | **infographic** | 商业演示、对比分析、品牌内容 | 米白底 + 深褐红标题,蓝/橙双色,扁平专业感 |
 | **executive-tech** | AI 产品方案、商业洞察、咨询式表达、品牌化技术内容 | 深靛紫主色 + 便当盒卡片布局 + 仪表盘图表 + 杂志化标题 + 半调双色调人物/物体 |
 | **cozy-handdrawn** | 中文技术长文、概念解释、流程拆解、公众号教程配图 | 米白纸感底 + 黑色手绘线条 + 粉彩圆角卡片 + 轻漫画式信息图 + LQ 动画形象辅助叙事 |
+| **saas-flat** | AI 工程化实践、研发运维流程、MCP/Agent 调用链、效率复盘 | 纯白底 + 淡彩圆角卡片 + 黑圆编号 + 蓝色机器人图标 + 语义化彩色箭头 + 大号彩色数字 |
 
 ## 产物结构
 

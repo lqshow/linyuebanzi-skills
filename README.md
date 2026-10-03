@@ -4,20 +4,20 @@
 
 ## Preview Gallery
 
-`linyuebanzi-inline-diagram` 支持 7 种视觉风格：
+`linyuebanzi-inline-diagram` 支持 8 种视觉风格：
 
 | | | | |
 |:---:|:---:|:---:|:---:|
 | ![](./previews/notebook.png) | ![](./previews/infographic.png) | ![](./previews/executive-tech.png) | ![](./previews/cozy-handdrawn.png) |
 | notebook · 手绘网格笔记本风 | infographic · 专业扁平信息图 | executive-tech · 现代科技商务风 | cozy-handdrawn · 温暖手绘卡片风 |
-| ![](./previews/tech-doodle.png) | ![](./previews/cartoon-infographic.png) | ![](./previews/whiteboard-sketch.png) | |
-| tech-doodle · 技术简笔画风 | cartoon-infographic · 卡通信息图风 | whiteboard-sketch · 白板手绘风 | |
+| ![](./previews/tech-doodle.png) | ![](./previews/cartoon-infographic.png) | ![](./previews/whiteboard-sketch.png) | ![](./previews/saas-flat.png) |
+| tech-doodle · 技术简笔画风 | cartoon-infographic · 卡通信息图风 | whiteboard-sketch · 白板手绘风 | saas-flat · SaaS 产品扁平风 |
 
 ## 包含 Skills
 
 ### `linyuebanzi-inline-diagram` · 技术长文插图生成
 
-为 3000~8000 字技术长文自动识别插图位置，生成 4-5 张概念图、流程图、对比图、架构图。支持 notebook / infographic / executive-tech / cozy-handdrawn / tech-doodle / cartoon-infographic / whiteboard-sketch 七种视觉风格。
+为 3000~8000 字技术长文自动识别插图位置，生成 4-5 张概念图、流程图、对比图、架构图。支持 notebook / infographic / executive-tech / cozy-handdrawn / tech-doodle / cartoon-infographic / whiteboard-sketch / saas-flat 八种视觉风格。
 
 - **输入**: 技术长文 Markdown
 - **输出**: 多张 16:9 插图 PNG + 插入位置清单
